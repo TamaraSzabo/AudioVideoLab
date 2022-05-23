@@ -34,6 +34,8 @@ namespace BusinessLogic
 
         public async void ReadMovie()
         {
+           //SortedDictionary/34343
+
 
             var capture = new VideoCapture(videoFilename);
             TotalFrame = (int)capture.Get(CapProp.FrameCount);
