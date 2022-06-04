@@ -9,12 +9,16 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using BusinessLogic;
-
+using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 
 namespace AudioVideoLab
 {
     public partial class Form1 : Form
     {
+        private WaveOutEvent outputDevice;
+        private AudioFileReader audioFile;
+
         private string originalImageFilename;
         private readonly BrigthnessContrast brigthnessContrast = new BrigthnessContrast();
         BusinessLogic.FilterScaleRotateTransition auxFunc = new BusinessLogic.FilterScaleRotateTransition();
@@ -37,6 +41,7 @@ namespace AudioVideoLab
         }
 
         public object Openfile { get; private set; }
+        //public EventHandler<StoppedEventArgs> OnPlaybackStopped { get; private set; }
 
         private void LoadImage_Click(object sender, EventArgs e)
         {
@@ -53,9 +58,6 @@ namespace AudioVideoLab
         private void GreyImage_Click(object sender, EventArgs e) //ChangeColorSpace
         {
 
-            // gray_image = My_Image.Convert<Gray, byte>();
-            // pictureBox1.Image = gray_image.AsBitmap();
-            //gray_image[0, 0] = new Gray(200);
             var colorSpace = new ChangeColorSpace();
             pictureBox1.Image = colorSpace.ConvertToGrayScale(originalImageFilename);
 
@@ -76,26 +78,16 @@ namespace AudioVideoLab
 
         private void Brightness_Click(object sender, EventArgs e) //BrigthnessContrast
         {
-            float alpha = float.Parse(this.alpha_textBox.Text);//keep
-            float beta = float.Parse(beta_textBox.Text); //keep
-            //imgOutput = new Image<Gray, Byte>(gray_image.Width, gray_image.Height);
-            //for (int i = 0; i < gray_image.Height; i++)
-            //    for (int j = 0; j < gray_image.Width; j++)
-            //    {
-            //        var formula = gray_image[i, j].Intensity * alpha + beta;
-            //        imgOutput[i, j] = new Gray(formula);
-            //    }
-            pictureBox1.Image = brigthnessContrast.ChangeBrigthnessAndContrast(originalImageFilename, alpha, beta); //keep
+            float alpha = float.Parse(this.alpha_textBox.Text);
+            float beta = float.Parse(beta_textBox.Text); 
+        
+            pictureBox1.Image = brigthnessContrast.ChangeBrigthnessAndContrast(originalImageFilename, alpha, beta); 
         }
 
         private void Gamma_Click(object sender, EventArgs e) //BrigthnessContrast
         {
             pictureBox1.Image = brigthnessContrast.GammaCorrection(originalImageFilename);
-            //float gamma = float.Parse(gamma_textBox.Text);
-            //gamma__Picture = My_Image;
-            //gamma__Picture._GammaCorrect(gamma);
-            //pictureBox1.Image = gamma__Picture.AsBitmap();
-
+           
         }
 
         private void RedFilter(object sender, EventArgs e)
@@ -107,23 +99,19 @@ namespace AudioVideoLab
         {
             float timesZoom = 2.0F;
             pictureBox1.Image = auxFunc.scale(My_Image, timesZoom).AsBitmap();
-            //resized_image = new Image<Bgr, Byte>(My_Image.Width, My_Image.Height);
-            //resized_image = My_Image.Resize(256, 128, Emgu.CV.CvEnum.Inter.Nearest);
-            //pictureBox1.Image = resized_image.AsBitmap();
+            
         }
 
         private void Rotate_Click(object sender, EventArgs e) //FilterScaleRotateTransition
         {
             float rotateAngle = 45.0F;
             pictureBox1.Image = auxFunc.rotate(My_Image, rotateAngle).AsBitmap();
-            //rotate_image = new Image<Bgr, Byte>(My_Image.Width, My_Image.Height);
-            //rotate_image = My_Image.Rotate(90, new Bgr(255, 255, 255));
-            //pictureBox1.Image = rotate_image.AsBitmap();
+          
         }
 
         private async void BlendingImage_Click(object sender, EventArgs e) //FilterScaleRotateTransition
         {
-            String path = "C:\\Users\\asus\\Documents\\GitHub\\EditareAudioVideo\\EditareAudioVideo";
+            String path = "D:\\University\\EditareAudioVideo\\AudioVideoLab";
             var imgList = auxFunc.filesFromDirectory(path);
             var computedImages = auxFunc.ComputeBlendedImages(imgList);
             foreach (var item in computedImages)
@@ -131,21 +119,7 @@ namespace AudioVideoLab
                 pictureBox1.Image = item.ToBitmap();
                 await Task.Delay(25);
             }
-            //string[] FileNames = Directory.GetFiles(@"C:\Users\asus\Documents\GitHub\EditareAudioVideo\EditareAudioVideo", "*.png");
-            //List<Image<Bgr, byte>> listImages = new List<Image<Bgr, byte>>();
-            //foreach (var file in FileNames)
-            //{
-            //    listImages.Add(new Image<Bgr, byte>(file));
-            //}
-            //for (int i = 0; i < listImages.Count - 1; i++)
-            //{
-            //    for (double alpha = 0.0; alpha <= 1.0; alpha += 0.01)
-            //    {
-            //        pictureBox1.Image = listImages[i + 1].AddWeighted(listImages[i], alpha, 1 - alpha, 0).AsBitmap();
-            //        await Task.Delay(25);
-            //    }
-            //}
-
+         
         }
 
         private void ChangeColorSpace_Click(object sender, EventArgs e)
@@ -221,28 +195,7 @@ namespace AudioVideoLab
                 videoReading.FrameAppeared += videoReading_FrameAppeared;
                 videoReading.ReadMovie();
 
-                //capture = new VideoCapture(ofd.FileName);
-                //Mat m = new Mat();
-                //capture.Read(m);
-                //pictureBox1.Image = m.ToBitmap();
-
-                //TotalFrame = (int)capture.Get(CapProp.FrameCount);
-                //Fps = capture.Get(CapProp.Fps);
-                //FrameNo = 1;
-                //NumericUpDown numericUpDown1 = new NumericUpDown();
-
-                //numericUpDown1.Value = FrameNo;
-                //numericUpDown1.Minimum = 0;
-                //numericUpDown1.Maximum = TotalFrame;
-
             }
-
-            //if (capture == null)
-            //{
-            //    return;
-            //}
-            //IsReadingFrame = true;
-            //ReadAllFrames();
 
         }
 
@@ -294,8 +247,7 @@ namespace AudioVideoLab
             Mat foregroundMask = new Mat();
             fgDetector.Apply(frame, foregroundMask);
             var foregroundMaskImage = foregroundMask.ToImage<Gray, Byte>();
-            foregroundMaskImage = foregroundMaskImage.Not();
-            //newBackgroundImage = frame.ToImage<Bgr, Byte>();
+            foregroundMaskImage = foregroundMaskImage.Not();    
 
             var copyOfNewBackgroundImage = newBackgroundImage.Resize(foregroundMaskImage.Width, foregroundMaskImage.Height, Inter.Lanczos4);
             copyOfNewBackgroundImage = copyOfNewBackgroundImage.Copy(foregroundMaskImage);
@@ -321,8 +273,6 @@ namespace AudioVideoLab
             }
         }
 
-
-
         private async void ReadAllFrames()
         {
 
@@ -336,5 +286,133 @@ namespace AudioVideoLab
                 label3.Text = FrameNo.ToString() + "/" + TotalFrame.ToString();
             }
         }
+
+        private void btnPlayAudio(object sender, EventArgs e) //Play Audio
+        {
+            string path;
+            OpenFileDialog OpenFile = new OpenFileDialog();
+            if (OpenFile.ShowDialog() == DialogResult.OK)
+            {
+                path = OpenFile.FileName;
+                if (outputDevice == null)
+                {
+                    outputDevice = new WaveOutEvent();
+                    outputDevice.PlaybackStopped += OnPlaybackStopped;
+                }
+                if (audioFile == null)
+                {
+                    audioFile = new AudioFileReader(path);
+                    outputDevice.Init(audioFile);
+                }
+                outputDevice.Play();
+            }
+        }
+
+        private void btnMixAudioFiles(object sender, EventArgs e) //Mix Audio Files
+        {
+            using (var reader1 = new AudioFileReader(@"D:\University\EditareAudioVideo\AudioVideoLab\70_G_LowFlutes_01_732.wav"))
+            using (var reader2 = new AudioFileReader(@"D:\University\EditareAudioVideo\AudioVideoLab\70_G_NostalgicKeys_02_732.wav"))
+            //Stuff (mp3cut.net).mp3"
+            {
+                var mixer = new MixingSampleProvider(new[] { reader1, reader2 });
+                WaveFileWriter.CreateWaveFile16(@"D:\University\EditareAudioVideo\AudioVideoLab\mixed.wav", mixer);
+            }
+
+        }
+
+        private void btnConvertToMp3(object sender, EventArgs e) //Convert to Mp3
+        {
+            OpenFileDialog OpenFile = new OpenFileDialog();
+            if (OpenFile.ShowDialog() == DialogResult.OK)
+            {
+                string infile = OpenFile.FileName;
+                using (var reader = new MediaFoundationReader(infile))
+                {
+                    WaveFileWriter.CreateWaveFile(@"D:\University\EditareAudioVideo\AudioVideoLab\convertedtomp3.mp3", reader);
+                }
+            }
+        }
+
+        private void btnConvertToWav(object sender, EventArgs e) //Convert to Waw
+        {
+            OpenFileDialog OpenFile = new OpenFileDialog();
+            if (OpenFile.ShowDialog() == DialogResult.OK)
+            {
+                string infile = OpenFile.FileName;
+                using (var reader = new Mp3FileReader(infile))
+                {
+                    WaveFileWriter.CreateWaveFile(@"D:\University\EditareAudioVideo\AudioVideoLab\ConvertedToWAV.wav", reader);
+                }
+            }
+        }
+
+        private void btnMonoToStereo(object sender, EventArgs e) //Mono to Stereo
+        {
+            OpenFileDialog OpenFile = new OpenFileDialog();
+            if (OpenFile.ShowDialog() == DialogResult.OK)
+            {
+                using (var inputReader = new AudioFileReader(OpenFile.FileName))
+                {
+                    var stereo = new MonoToStereoSampleProvider(inputReader);
+                    stereo.LeftVolume = 0.0f; // silence in left channel
+                    stereo.RightVolume = 1.0f; // full volume in right channel
+                    WaveFileWriter.CreateWaveFile16(@"D:\University\EditareAudioVideo\AudioVideoLab\ConvertedToStereo.wav", stereo);
+                }
+            }
+        }
+
+        private void btnStereoToMono(object sender, EventArgs e) //Stereo to Mono
+        {
+            OpenFileDialog OpenFile = new OpenFileDialog();
+            if (OpenFile.ShowDialog() == DialogResult.OK)
+            {
+                using (var inputReader = new AudioFileReader(OpenFile.FileName))
+                {
+                    var mono = new StereoToMonoSampleProvider(inputReader);
+                    mono.LeftVolume = 0.0f; // discard the left channel
+                    mono.RightVolume = 1.0f; // keep the right channel
+
+                    WaveFileWriter.CreateWaveFile16(@"D:\University\EditareAudioVideo\AudioVideoLab\ConvertedToMono.wav", mono);
+                }
+            }
+        }
+
+        private void btnConcatenateAudioFiles(object sender, EventArgs e) //Concatenate Audio Files
+        {
+            var first = new AudioFileReader(@"D:\University\EditareAudioVideo\AudioVideoLab\70_G_LowFlutes_01_732.wav");
+            var second = new AudioFileReader(@"D:\University\EditareAudioVideo\AudioVideoLab\70_G_NostalgicKeys_02_732.wav");
+            var third = new AudioFileReader(@"D:\University\EditareAudioVideo\AudioVideoLab\85_F_DreamStateArp_732.wav");
+
+            var playlist = new ConcatenatingSampleProvider(new[] { first, second, third });
+            WaveFileWriter.CreateWaveFile16(@"D:\University\EditareAudioVideo\AudioVideoLab\playlist.wav", playlist);
+        }
+
+        private void btnResampler(object sender, EventArgs e)
+        {
+            int outRate = 16000;
+            var outFile = @"D:\University\EditareAudioVideo\AudioVideoLab\test resampled MF.wav";
+            OpenFileDialog OpenFile = new OpenFileDialog();
+            if (OpenFile.ShowDialog() == DialogResult.OK)
+            {
+                using (var reader = new Mp3FileReader(OpenFile.FileName))
+                {
+                    var outFormat = new WaveFormat(outRate, reader.WaveFormat.Channels);
+                    using (var resampler = new MediaFoundationResampler(reader, outFormat))
+                    {
+                        resampler.ResamplerQuality = 20;
+                        WaveFileWriter.CreateWaveFile(outFile, resampler);
+                    }
+                }
+            }
+        }
+
+        private void OnPlaybackStopped(object sender, StoppedEventArgs args)
+        {
+            outputDevice.Dispose();
+            outputDevice = null;
+            audioFile.Dispose();
+            audioFile = null;
+        }
+
     }
 }
